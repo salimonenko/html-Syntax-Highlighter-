@@ -1,0 +1,8 @@
+/*   Стили для подсветки HTML_кода   */
+#q { white-space: pre-wrap; }
+#q .br   { color: #747474; }
+#q .tag  { color: blue; font-weight: bold; }
+#q .attr { color: red; }
+#q .eq   { color: #8a8a8a; }
+#q .val  { color: #009200; }
+#q .cmt  { color: #9a9a9a; font-style: italic; }

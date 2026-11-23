@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html  xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Подсветка HTML-разметки</title>
+
+    <link href="style.css" media="all" rel="stylesheet" type="text/css" />
+
+<style type="text/css">
+</style>
+
+</head>
+<body>
+<p>No highlightHtml: </p>
+<div id="begin" class="qwe" data-fg="attr1">Text Text '  Then " Text
+    <span style="display: inline-block" data-sr = "attr2"> <!-- Comment & < > --> And ! also Text </span>
+    <script>
+        var e = '<!--';
+        e=3;
+        e = e + "qwe";
+        var f = '/ --> /';
+    </script>
+</div>
+
+<p>After highlightHtml: </p>
+<div id="q"></div>
+
+
+<script type="text/javascript">
+// Использование:
+    document.getElementById('q').innerHTML = highlightHtml(document.getElementById('begin').outerHTML);
+
+/******   ПОДСВЕТКА HTML-РАЗМЕТКИ  (Начало)   ************/
+ // Функция превращает символы & < > в их html-сущности
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+}
+
+// Функция подсвечивает HTML-разметку
+function highlightHtml(code) {
+  var out = "";
+  var pos = 0;
+  var re = /<\!--[\s\S]*?-->|<[^>]*>/g;
+  var m;
+
+  while ((m = re.exec(code)) !== null) {
+    out += escapeHtml(code.slice(pos, m.index));   // Text между тегами
+    var token = m[0];
+    var newPos = m.index + token.length;
+
+    if (token.slice(0, 4) === "<!--") {
+      out += '<span class="cmt">' + escapeHtml(token) + "</span>";
+    } else {
+      out += highlightTag(token);
+
+      var raw = token.match(/^<([a-zA-Z]+)/);
+      var name = raw ? raw[1].toLowerCase() : null;
+
+      if (name === "script" || name === "style") {
+        var closeIdx = code.toLowerCase().indexOf("</" + name, newPos);
+        if (closeIdx === -1) {
+          // незакрытый тег — содержимое до конца Textа серым, разбор завершён
+          out += '<span class="cmt">' + escapeHtml(code.slice(newPos)) + "</span>";
+          return out;
+        }
+        out += '<span class="cmt">' + escapeHtml(code.slice(newPos, closeIdx)) + "</span>";
+        newPos = closeIdx;      // прыгаем к закрывающему тегу
+        re.lastIndex = closeIdx; // и говорим регулярке продолжить отсюда
+      }
+    }
+
+    pos = newPos;   // pos теперь присваивается ровно один раз, в конце итерации
+  }
+
+  out += escapeHtml(code.slice(pos));
+  return out;
+}
+
+
+function highlightTag(tag) {
+  var m = tag.match(/^(<\/?)([a-zA-Z][-\w:.]*)([^>]*)>$/);
+  if (!m) {
+    // например, <!DOCTYPE html> — красим целиком как прочее
+    return '<span class="cmt">' + escapeHtml(tag) + "</span>";
+  }
+  return '<span class="br">' + escapeHtml(m[1]) + "</span>" +
+         '<span class="tag">' + escapeHtml(m[2]) + "</span>" +
+         highlightAttrs(m[3]) +
+         '<span class="br">&gt;</span>';
+}
+
+// Функция делает посимвольный разбор атрибутов: имя, знак =, значение в кавычках или без
+function highlightAttrs(rest) {
+  var out = "";
+  var i = 0;
+  var n = rest.length;
+
+  while (i < n) {
+    var chunk = rest.slice(i);
+
+    var ws = chunk.match(/^\s+/);
+    if (ws) {
+      out += escapeHtml(ws[0]);
+      i += ws[0].length;
+      continue;
+    }
+
+    var name = chunk.match(/^[^\s=<>"']+/);
+    if (!name) {
+      out += escapeHtml(chunk[0]);
+      i += 1;
+      continue;
+    }
+
+    out += '<span class="attr">' + escapeHtml(name[0]) + "</span>";
+    i += name[0].length;
+
+    var eq = rest.slice(i).match(/^\s*=\s*/);
+    if (eq) {
+      i += eq[0].length;
+      out += '<span class="eq">' + escapeHtml("=") + "</span>";
+
+      var val = rest.slice(i).match(/^("[^"]*"|'[^']*'|[^\s>]*)/);
+      if (val) {
+        out += '<span class="val">' + escapeHtml(val[0]) + "</span>";
+        i += val[0].length;
+      }
+    }
+  }
+
+  return out;
+}
+/******   /ПОДСВЕТКА HTML-РАЗМЕТКИ  (Конец)   ************/
+</script>
+
+</body>
+</html>
